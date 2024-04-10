@@ -75,11 +75,11 @@ def sitemap_controller():
                     controller="dataset_resource",
                     action="read",
                     id=pkg["name"],
-                    package_type=tk.h.default_package_type(),
-                    resource_id=res["id"],
+                    resource_id=res["id"]
                 )
                 lastmod = etree.SubElement(url, "lastmod")
-                lastmod.text = datetime.strptime(res["created"], "%Y-%m-%dT%H:%M:%S.%f")
+                resmodifiedDate = datetime.strptime(res["created"], "%Y-%m-%dT%H:%M:%S.%f")
+                lastmod.text = resmodifiedDate.strftime("%Y-%m-%d")
 
         with open(os.path.join(current_dir, filename), "wb") as f:
             f.write(etree.tostring(root, pretty_print=True))
