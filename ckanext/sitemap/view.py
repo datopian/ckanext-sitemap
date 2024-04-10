@@ -3,40 +3,19 @@ from datetime import datetime, timezone
 import os
 
 from flask import Blueprint, make_response
-from ckan.model import Session, Package
+import ckan.model as model
+from ckan.common import c
 
 import ckan.plugins.toolkit as tk
 from lxml import etree
 
 sitemap = Blueprint("sitemap", __name__)
 
-# cache = Cache(current_app, config={'CACHE_TYPE': 'simple'})
-
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 XHTML_NS = "http://www.w3.org/1999/xhtml"
 
 log = logging.getLogger(__file__)
-
-defualt_locals = tk.config.get("ckan.locale_default", "en")
-
-if isinstance(defualt_locals, str):
-    defualt_locals = [defualt_locals]
-
-
-def _create_language_alternatives(link, url):
-    """
-    Create links (elements) for every language in locales_offered in .ini file
-    :param link: string containing the link, eg. /dataset/xyz
-    :param url: root node
-    """
-    for lang in defualt_locals:
-        attrib = {
-            "rel": "alternate",
-            "hreflang": lang,
-            "href": tk.config.get("ckan.site_url") + "/" + lang + link,
-        }
-        etree.SubElement(url, "{http://www.w3.org/1999/xhtml}link", attrib)
 
 
 def sitemap_controller():
@@ -54,13 +33,18 @@ def sitemap_controller():
 
     def _create_file(filename, root):
         log.info("Creating new sitemap.xml file: %s", filename)
-        pkgs = (
-            Session.query(Package)
-            .filter(Package.type == "dataset")
-            .filter(Package.private != True)
-            .filter(Package.state == "active")
-            .all()
-        )
+        
+        context = {'model': model, 'session': model.Session, 'user': c.user or c.author}
+        data_dict = {
+            'q': '*:*',
+            'start': 0,
+            'rows': 500  # Adjust as needed
+        }
+
+        # Use the package_search action to query datasets
+        search_action = tk.get_action('package_search')
+        search_results = search_action(context, data_dict)
+        datasets = search_results['results']
 
         all_ckan_urls = [
             tk.url_for(controller="home", action="index", _external=True),
@@ -73,38 +57,29 @@ def sitemap_controller():
             url = etree.SubElement(root, "url")
             loc = etree.SubElement(url, "loc")
             loc.text = _url
-            _create_language_alternatives(_url, url)
 
-        for pkg in pkgs:
+        for pkg in datasets:
             url = etree.SubElement(root, "url")
             loc = etree.SubElement(url, "loc")
-            pkg_url = tk.url_for(controller="dataset", action="read", id=pkg.name)
+            pkg_url = tk.url_for(controller="dataset", action="read", id=pkg["name"])
             loc.text = tk.config.get("ckan.site_url") + pkg_url
             lastmod = etree.SubElement(url, "lastmod")
-            lastmod.text = pkg.metadata_modified.strftime("%Y-%m-%d")
-            _create_language_alternatives(pkg_url, url)
-            for res in pkg.resources:
+            metadata_modifiedDate = datetime.strptime(pkg["metadata_modified"], "%Y-%m-%dT%H:%M:%S.%f")
+            lastmod.text = metadata_modifiedDate.strftime("%Y-%m-%d")
+            resources = list(pkg["resources"])
+
+            for res in resources:
                 url = etree.SubElement(root, "url")
                 loc = etree.SubElement(url, "loc")
                 loc.text = tk.config.get("ckan.site_url") + tk.url_for(
                     controller="dataset_resource",
                     action="read",
-                    id=pkg.name,
+                    id=pkg["name"],
                     package_type=tk.h.default_package_type(),
-                    resource_id=res.id,
+                    resource_id=res["id"],
                 )
                 lastmod = etree.SubElement(url, "lastmod")
-                _create_language_alternatives(
-                    tk.url_for(
-                        controller="dataset_resource",
-                        action="read",
-                        id=pkg.name,
-                        package_type=tk.h.default_package_type(),
-                        resource_id=res.id,
-                    ),
-                    url,
-                )
-                lastmod.text = res.created.strftime("%Y-%m-%d")
+                lastmod.text = datetime.strptime(res["created"], "%Y-%m-%dT%H:%M:%S.%f")
 
         with open(os.path.join(current_dir, filename), "wb") as f:
             f.write(etree.tostring(root, pretty_print=True))
@@ -139,7 +114,6 @@ def sitemap_controller():
 
 
 sitemap.add_url_rule("/sitemap.xml", view_func=sitemap_controller, methods=["GET"])
-
 
 def get_blueprints():
     return [sitemap]

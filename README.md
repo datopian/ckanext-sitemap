@@ -1,4 +1,4 @@
-[![Tests](https://github.com//ckanext-sitemap/workflows/Tests/badge.svg?branch=main)](https://github.com//ckanext-sitemap/actions)
+[![Tests](https://github.com/scastineyras/ckanext-sitemap/workflows/Tests/badge.svg?branch=main)](https://github.com/scastineyras/ckanext-sitemap/actions)
 
 # ckanext-sitemap
 A CKAN extension that generates a sitemap XML file is designed to create a structured map of a CKAN instance's datasets and resources, making it easier for search engines to discover and index the available data. !
@@ -17,9 +17,9 @@ To install ckanext-sitemap:
 
 2. Clone the source and install it on the virtualenv
 
-    git clone https://github.com//ckanext-sitemap.git
-    cd ckanext-sitemap
-    pip install -e .
+   git clone https://github.com/scastineyras/ckanext-sitemap.git
+   cd ckanext-sitemap
+   pip install -e .
 	pip install -r requirements.txt
 
 3. Add `sitemap` to the `ckan.plugins` setting in your CKAN
