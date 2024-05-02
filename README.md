@@ -20,7 +20,7 @@ To install ckanext-sitemap:
     git clone https://github.com//ckanext-sitemap.git
     cd ckanext-sitemap
     pip install -e .
-	pip install -r requirements.txt
+    pip install -r requirements.txt
 
 3. Add `sitemap` to the `ckan.plugins` setting in your CKAN
    config file (by default the config file is located at
@@ -29,6 +29,18 @@ To install ckanext-sitemap:
 4. Restart CKAN. For example if you've deployed CKAN with Apache on Ubuntu:
 
      sudo service apache2 reload
+
+## Configuration
+
+You can configure this extension in the `production.ini` file of your CKAN instance. Ensure to set these environment variables according to your requirements for sitemap generation and management.
+
+Environment Variable | Default Value | Description
+-------------------- | ------------- | -----------
+`ckanext.sitemap.directory` | [`./ckanext/sitemap/public`](./ckanext/sitemap/public/) | The directory path for storing generated sitemaps.
+`ckanext.sitemap.max_items` | `5000` | Maximum number of items per sitemap file. If the total count of resources exceeds this limit, the sitemap is split into multiple files.
+`ckanext.sitemap.ttl` | `8 * 3600` (8 hours) | Time-To-Live (TTL) for sitemaps. Sitemaps older than this value (in seconds) are regenerated when a user visits a sitemap route.
+`ckanext.sitemap.include_resources` | `True` | Determines whether package resources (distributions) should be included in the sitemaps. Set to `True` to include resources, and `False` to exclude them.
+`ckanext.sitemap.include_language_alternatives` | `True` | Determines whether package resources (distributions) should be included in the sitemaps. Set to `True` to include resources, and `False` to exclude them.
 
 ## License
 
