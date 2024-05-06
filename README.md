@@ -2,23 +2,28 @@
 
 # ckanext-sitemap
 
-A CKAN extension that generates a sitemap XML file is designed to create a structured map of a CKAN instance's datasets and resources, making it easier for search engines to discover and index the available data. !
+A CKAN extension that generates a sitemap XML file is designed to create a structured map of a CKAN instance's datasets and resources, making it easier for search engines to discover and index the available data.
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
+- [License](#license)
 
 ## Getting Started
 
 ### Installation
 
-**TODO:** Add any additional install steps to the list below.
-   For example installing any non-Python dependencies or adding any required
-   config settings.
-
 To install ckanext-sitemap:
 
 1. Activate your CKAN virtual environment, for example:
 
-     . /usr/lib/ckan/default/bin/activate
+    ```bash
+    . /usr/lib/ckan/default/bin/activate
+    ```
 
-2. Clone the source and install it on the virtualenv
+2. Clone the source and install it in the virtual environment
 
     ```bash
     git clone https://github.com//ckanext-sitemap.git
@@ -47,8 +52,9 @@ Environment Variable | Default Value | Description
 `ckanext.sitemap.max_items` | `5000` | Maximum number of items per sitemap file. If the total count of resources exceeds this limit, the sitemap is split into multiple files.
 `ckanext.sitemap.autorenew` | `True` | If this option is enabled, the sitemaps will be automatically renewed whenever a user requests a sitemap and the existing sitemap is older than the Time-To-Live (TTL) value specified. Set this to False if you prefer a cron job to handle sitemap generation.
 `ckanext.sitemap.ttl` | `8 * 3600` (8 hours) | Time-To-Live (TTL) for sitemaps. Sitemaps older than this value (in seconds) are regenerated when a user visits a sitemap route.
-`ckanext.sitemap.resources` | `True` | Determines whether package resources (distributions) should be included in the sitemaps. Set to `True` to include resources, and `False` to exclude them.
-`ckanext.sitemap.language_alternatives` | `True` | Determines whether package resources (distributions) should be included in the sitemaps. Set to `True` to include resources, and `False` to exclude them.
+`ckanext.sitemap.resources` | `True` | Determines whether package resources (distributions) should be included in the sitemaps.
+`ckanext.sitemap.language_alternatives` | `True` | Determines whether language alternatives should be included in the sitemaps.
+`ckanext.sitemap.additional_uris` | `Undefined` | A list of additional sitemap URIs separated by whitespace or newlines. These URIs will be included in the sitemap generation process alongside the default CKAN URIs.
 
 ### Using Cron for Regular Sitemap Generation
 
@@ -72,9 +78,19 @@ To schedule the command to run at 2 AM, 10 AM, and 6 PM:
 
     Usage:
 
-    ```plaintext
+    ```bash
     ckanext-sitemap generate
     ```
+
+## Contributing
+
+To contribute to this documentation, create a branch or fork this repository, make
+your changes and create a merge request.
+
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see
+the tags on this repository.
 
 ## License
 
