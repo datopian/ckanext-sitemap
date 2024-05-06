@@ -64,6 +64,39 @@ def _generate_sitemap_files(pkgs):
     sitemap_index = 0
     file_root = None
 
+    ckan_uris = [
+        tk.url_for(controller="home", action="index", _external=True),
+        tk.url_for(controller="dataset", action="search", _external=True),
+        tk.url_for(controller="organization", action="index", _external=True),
+        tk.url_for(controller="group", action="index", _external=True),
+    ]
+
+    # Get the hardcoded URIs from the CKAN configuration (if present)
+    additional_uris = tk.config.get('ckanext.sitemap.additional_uris', '').split()
+
+    # Merge CKAN URIs and hardcoded URIs from ckan config
+    all_uris = ckan_uris + additional_uris
+
+    for uri in all_uris:
+        if sitemap_item_count % MAX_ITEMS == 0:
+            if file_root is not None:
+                with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
+                    f.write(etree.tostring(
+                        file_root, pretty_print=True))
+                sitemap_index += 1
+                file_root = None  # Reset file_root after writing
+                sitemap_item_count = 0  # Reset sitemap_item_count
+
+            file_root = etree.Element(
+                "urlset", nsmap={None: SITEMAP_NS, "xhtml": XHTML_NS})
+
+        url = etree.SubElement(file_root, "url")
+        loc = etree.SubElement(url, "loc")
+        loc.text = uri
+        lastmod = etree.SubElement(url, "lastmod")
+        lastmod.text = datetime.now().strftime("%Y-%m-%d")  # Set last modified date to current time (we don't know the real modified date)
+        sitemap_item_count += 1
+
     for pkg in pkgs:
         if sitemap_item_count % MAX_ITEMS == 0:
             if file_root is not None:
