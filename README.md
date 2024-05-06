@@ -44,7 +44,7 @@ To install ckanext-sitemap:
 
 ### Configuration
 
-You can configure this extension in the `production.ini` file of your CKAN instance. Ensure to set these environment variables according to your requirements for sitemap generation and management.
+You can configure this extension in the `ckan.ini` file of your CKAN instance. Ensure to set these environment variables according to your requirements for sitemap generation and management.
 
 Environment Variable | Default Value | Description
 -------------------- | ------------- | -----------
@@ -54,7 +54,7 @@ Environment Variable | Default Value | Description
 `ckanext.sitemap.ttl` | `8 * 3600` (8 hours) | Time-To-Live (TTL) for sitemaps. Sitemaps older than this value (in seconds) are regenerated when a user visits a sitemap route.
 `ckanext.sitemap.resources` | `True` | Determines whether package resources (distributions) should be included in the sitemaps.
 `ckanext.sitemap.language_alternatives` | `True` | Determines whether language alternatives should be included in the sitemaps.
-`ckanext.sitemap.additional_uris` | `Undefined` | A list of additional sitemap URIs separated by whitespace or newlines. These URIs will be included in the sitemap generation process alongside the default CKAN URIs.
+`ckanext.sitemap.custom_uris` | `Undefined` | A list of additional sitemap URIs separated by whitespace or newlines. These URIs will be included in the sitemap generation process alongside the default CKAN URIs.
 
 ### Using Cron for Regular Sitemap Generation
 
