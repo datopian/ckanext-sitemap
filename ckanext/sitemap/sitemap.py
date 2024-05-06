@@ -67,6 +67,17 @@ def _remove_file(file):
 
 
 def _add_url_to_sitemap(file_root, url, lastmod, uri, inc_lang_alts=True):
+
+    ckan_site_url = tk.config.get("ckan.site_url")
+
+    # Check if the link already starts with the CKAN site URL
+    if url.startswith(ckan_site_url):
+        # If the link already starts with the CKAN site URL, use it as is
+        uri = url
+    else:
+        # If not, append the URL to the CKAN site URL
+        uri = f"{ckan_site_url.rstrip('/')}/{url.lstrip('/')}"
+
     # Create URL element for each URI
     url_elem = etree.SubElement(file_root, "url")
     loc = etree.SubElement(url_elem, "loc")
