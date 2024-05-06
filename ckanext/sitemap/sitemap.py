@@ -37,11 +37,18 @@ def _get_locales_from_config() -> Set:
 
 
 def _create_language_alternatives(link, url):
+    ckan_site_url = tk.config.get("ckan.site_url")
     for lang in _get_locales_from_config():
+        # Check if the link already starts with the CKAN site URL
+        if link.startswith(ckan_site_url):
+            href = f"{ckan_site_url}/{lang}{link[len(ckan_site_url):]}"
+        else:
+            href = f"{ckan_site_url}/{lang}{link}"
+
         attrib = {
             "rel": "alternate",
             "hreflang": lang,
-            "href": tk.config.get("ckan.site_url") + "/" + lang + link,
+            "href": href,
         }
         etree.SubElement(url, "{http://www.w3.org/1999/xhtml}link", attrib)
 
@@ -59,11 +66,39 @@ def _remove_file(file):
     os.remove(os.path.join(SITEMAP_DIR, file))
 
 
+def _add_url_to_sitemap(file_root, url, lastmod, uri, inc_lang_alts=True):
+    # Create URL element for each URI
+    url_elem = etree.SubElement(file_root, "url")
+    loc = etree.SubElement(url_elem, "loc")
+    loc.text = uri
+    lastmod_elem = etree.SubElement(url_elem, "lastmod")
+    lastmod_elem.text = datetime.now().strftime(
+        "%Y-%m-%d")  # Set last modified date to current time
+
+    # Add language alternatives if needed
+    if INC_LANG_ALTS and inc_lang_alts:
+        _create_language_alternatives(uri, url_elem)
+
+    return url_elem
+
+
+def _start_new_sitemap(file_root, sitemap_item_count, sitemap_index):
+    if file_root is not None:
+        with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
+            f.write(etree.tostring(file_root, pretty_print=True))
+        sitemap_index += 1
+    file_root = etree.Element(
+        "urlset", nsmap={None: SITEMAP_NS, "xhtml": XHTML_NS})
+    sitemap_item_count = 0
+    return file_root, sitemap_index, sitemap_item_count
+
+
 def _generate_sitemap_files(pkgs):
     sitemap_item_count = 0
     sitemap_index = 0
     file_root = None
 
+    # Generate sitemap entries for default CKAN URIs
     ckan_uris = [
         tk.url_for(controller="home", action="index", _external=True),
         tk.url_for(controller="dataset", action="search", _external=True),
@@ -71,103 +106,53 @@ def _generate_sitemap_files(pkgs):
         tk.url_for(controller="group", action="index", _external=True),
     ]
 
-    # Get the hardcoded URIs from the CKAN configuration (if present)
-    additional_uris = tk.config.get('ckanext.sitemap.additional_uris', '').split()
-
-    # Merge CKAN URIs and hardcoded URIs from ckan config
-    all_uris = ckan_uris + additional_uris
-
-    for uri in all_uris:
+    for uri in ckan_uris:
         if sitemap_item_count % MAX_ITEMS == 0:
-            if file_root is not None:
-                with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
-                    f.write(etree.tostring(
-                        file_root, pretty_print=True))
-                sitemap_index += 1
-                file_root = None  # Reset file_root after writing
-                sitemap_item_count = 0  # Reset sitemap_item_count
-
-            file_root = etree.Element(
-                "urlset", nsmap={None: SITEMAP_NS, "xhtml": XHTML_NS})
-
-        url = etree.SubElement(file_root, "url")
-        loc = etree.SubElement(url, "loc")
-        loc.text = uri
-        lastmod = etree.SubElement(url, "lastmod")
-        lastmod.text = datetime.now().strftime("%Y-%m-%d")  # Set last modified date to current time (we don't know the real modified date)
+            file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
+                file_root, sitemap_item_count, sitemap_index
+            )
+        _add_url_to_sitemap(file_root, uri, datetime.now(), uri)
         sitemap_item_count += 1
 
+    # Get additional URIs from the CKAN configuration (if present)
+    custom_uris = tk.config.get('ckanext.sitemap.custom_uris', '').split()
+
+    for uri in custom_uris:
+        if sitemap_item_count % MAX_ITEMS == 0:
+            file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
+                file_root, sitemap_item_count, sitemap_index
+            )
+        _add_url_to_sitemap(file_root, uri, datetime.now(), uri, False)
+        sitemap_item_count += 1
+
+    # Process packages
     for pkg in pkgs:
         if sitemap_item_count % MAX_ITEMS == 0:
-            if file_root is not None:
-                with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
-                    f.write(etree.tostring(
-                        file_root, pretty_print=True))
-                sitemap_index += 1
-                file_root = None  # Reset file_root after writing
-                sitemap_item_count = 0  # Reset sitemap_item_count
-
-            file_root = etree.Element(
-                "urlset", nsmap={None: SITEMAP_NS, "xhtml": XHTML_NS})
-
-        url = etree.SubElement(file_root, "url")
-        loc = etree.SubElement(url, "loc")
-        pkg_url = tk.url_for(controller="dataset",
-                             action="read", id=pkg.name)
-        loc.text = tk.config.get("ckan.site_url") + pkg_url
-        lastmod = etree.SubElement(url, "lastmod")
-        lastmod.text = pkg.metadata_modified.strftime("%Y-%m-%d")
-
-        if INC_LANG_ALTS:
-            _create_language_alternatives(pkg_url, url)
-
+            file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
+                file_root, sitemap_item_count, sitemap_index
+            )
+        pkg_url = tk.url_for(controller="dataset", action="read", id=pkg.name)
+        _add_url_to_sitemap(file_root, pkg_url, pkg.metadata_modified,
+                            tk.config.get("ckan.site_url") + pkg_url)
         sitemap_item_count += 1
 
+        # Process resources
         if INC_RESOURCES:
             for res in pkg.resources:
                 if sitemap_item_count % MAX_ITEMS == 0:
-                    if file_root is not None:
-                        with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
-                            f.write(etree.tostring(
-                                file_root, pretty_print=True))
-                        sitemap_index += 1
-                        file_root = None  # Reset file_root after writing
-                        sitemap_item_count = 0  # Reset sitemap_item_count
-
-                    file_root = etree.Element(
-                        "urlset", nsmap={None: SITEMAP_NS, "xhtml": XHTML_NS})
-
-                url = etree.SubElement(file_root, "url")
-                loc = etree.SubElement(url, "loc")
-                loc.text = tk.config.get("ckan.site_url") + tk.url_for(
-                    controller="dataset_resource",
-                    action="read",
-                    id=pkg.name,
-                    package_type=tk.h.default_package_type(),
-                    resource_id=res.id,
-                )
-                lastmod = etree.SubElement(url, "lastmod")
-
-                if INC_LANG_ALTS:
-                    _create_language_alternatives(
-                        tk.url_for(
-                            controller="dataset_resource",
-                            action="read",
-                            id=pkg.name,
-                            package_type=tk.h.default_package_type(),
-                            resource_id=res.id,
-                        ),
-                        url,
+                    file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
+                        file_root, sitemap_item_count, sitemap_index
                     )
-
-                lastmod.text = res.created.strftime("%Y-%m-%d")
+                res_url = tk.url_for(controller="dataset_resource", action="read", id=pkg.name,
+                                     package_type=tk.h.default_package_type(), resource_id=res.id)
+                _add_url_to_sitemap(file_root, res_url, res.created, tk.config.get(
+                    "ckan.site_url") + res_url)
                 sitemap_item_count += 1
 
     # Write the last sitemap file
     if file_root is not None:
         with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
-            f.write(etree.tostring(
-                file_root, pretty_print=True))
+            f.write(etree.tostring(file_root, pretty_print=True))
 
     return sitemap_index + 1
 
@@ -214,7 +199,7 @@ def generate_sitemap_response(index=None):
     if os.path.exists(index_file_path):
         index_mtime = os.path.getmtime(index_file_path)
         if datetime.fromtimestamp(index_mtime) < (datetime.now() - timedelta(seconds=SITEMAP_TTL)) and SITEMAP_AUTORENEW:
-            # Regenerate sitemap index file if older than TTL
+            # Regenerate sitemap index file if older than TTL and autorenew is enabled
             log.info("Regenerating sitemap index file (older than TTL)")
             _remove_file(_generate_index_filename())
             generate_sitemap()
