@@ -67,7 +67,7 @@ Ensure that the sitemap generation occurs within the time frame specified by `ck
 To schedule the command to run at 2 AM, 10 AM, and 6 PM:
 
 ```bash
-0 2,10,18 * * * /usr/lib/ckan/default/bin/ckan -c /etc/ckan/default/production.ini ckanext-sitemap generate > /dev/null 2>&1
+0 2,10,18 * * * /usr/lib/ckan/default/bin/ckan -c /etc/ckan/default/ckan.ini ckanext-sitemap generate > /dev/null 2>&1
 ```
 
 ## Available Commands
