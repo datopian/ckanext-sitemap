@@ -83,8 +83,7 @@ def _add_url_to_sitemap(file_root, url, lastmod, uri, inc_lang_alts=True):
     loc = etree.SubElement(url_elem, "loc")
     loc.text = uri
     lastmod_elem = etree.SubElement(url_elem, "lastmod")
-    lastmod_elem.text = datetime.now().strftime(
-        "%Y-%m-%d")  # Set last modified date to current time
+    lastmod_elem.text = lastmod.strftime("%Y-%m-%d")
 
     # Add language alternatives if needed
     if INC_LANG_ALTS and inc_lang_alts:
@@ -117,12 +116,14 @@ def _generate_sitemap_files(pkgs):
         tk.url_for(controller="group", action="index", _external=True),
     ]
 
+    lastmod = datetime.now()
+    
     for uri in ckan_uris:
         if sitemap_item_count % MAX_ITEMS == 0:
             file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
                 file_root, sitemap_item_count, sitemap_index
             )
-        _add_url_to_sitemap(file_root, uri, datetime.now(), uri)
+        _add_url_to_sitemap(file_root, uri, lastmod, uri)
         sitemap_item_count += 1
 
     # Get additional URIs from the CKAN configuration (if present)
@@ -133,7 +134,7 @@ def _generate_sitemap_files(pkgs):
             file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
                 file_root, sitemap_item_count, sitemap_index
             )
-        _add_url_to_sitemap(file_root, uri, datetime.now(), uri, False)
+        _add_url_to_sitemap(file_root, uri, lastmod, uri, False)
         sitemap_item_count += 1
 
     # Process packages
