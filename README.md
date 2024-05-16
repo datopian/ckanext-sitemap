@@ -53,6 +53,7 @@ Environment Variable | Default Value | Description
 `ckanext.sitemap.autorenew` | `True` | If this option is enabled, the sitemaps will be automatically renewed whenever a user requests a sitemap and the existing sitemap is older than the Time-To-Live (TTL) value specified. Set this to False if you prefer a cron job to handle sitemap generation.
 `ckanext.sitemap.ttl` | `8 * 3600` (8 hours) | Time-To-Live (TTL) for sitemaps. Sitemaps older than this value (in seconds) are regenerated when a user visits a sitemap route.
 `ckanext.sitemap.resources` | `True` | Determines whether package resources (distributions) should be included in the sitemaps.
+`ckanext.sitemap.groups` | `True` | Determines whether groups and organizations should be included in the sitemaps.
 `ckanext.sitemap.language_alternatives` | `True` | Determines whether language alternatives should be included in the sitemaps.
 `ckanext.sitemap.custom_uris` | `Undefined` | A list of additional sitemap URIs separated by whitespace or newlines. These URIs will be included in the sitemap generation process alongside the default CKAN URIs.
 

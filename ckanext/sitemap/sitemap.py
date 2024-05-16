@@ -2,9 +2,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import Set
 import os
+import sqlalchemy as sa
 
 from flask import make_response
-from ckan.model import Session, Package
+from ckan.model import Session, Package, Group
 
 import ckan.plugins.toolkit as tk
 from lxml import etree
@@ -20,6 +21,8 @@ SITEMAP_TTL = int(tk.config.get('ckanext.sitemap.ttl', 8*3600))
 MAX_ITEMS = tk.config.get('ckanext.sitemap.max_items', 5000)
 INC_RESOURCES = tk.asbool(tk.config.get(
     'ckanext.sitemap.resources', True))
+INC_GROUPS = tk.asbool(tk.config.get(
+    'ckanext.sitemap.groups', True))
 INC_LANG_ALTS = tk.asbool(tk.config.get(
     'ckanext.sitemap.language_alternatives', True))
 
@@ -103,7 +106,7 @@ def _start_new_sitemap(file_root, sitemap_item_count, sitemap_index):
     return file_root, sitemap_index, sitemap_item_count
 
 
-def _generate_sitemap_files(pkgs):
+def _generate_sitemap_files():
     sitemap_item_count = 0
     sitemap_index = 0
     file_root = None
@@ -137,7 +140,14 @@ def _generate_sitemap_files(pkgs):
         _add_url_to_sitemap(file_root, uri, lastmod, uri, False)
         sitemap_item_count += 1
 
-    # Process packages
+    # Generate sitemap entries for packages
+    pkgs = (
+        Session.query(Package)
+        .filter(Package.type == "dataset")
+        .filter(Package.private != True)
+        .filter(Package.state == "active")
+        .all()
+    )
     for pkg in pkgs:
         if sitemap_item_count % MAX_ITEMS == 0:
             file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
@@ -148,7 +158,7 @@ def _generate_sitemap_files(pkgs):
                             tk.config.get("ckan.site_url") + pkg_url)
         sitemap_item_count += 1
 
-        # Process resources
+        # Generate sitemap entries for resources (if enabled)
         if INC_RESOURCES:
             for res in pkg.resources:
                 if sitemap_item_count % MAX_ITEMS == 0:
@@ -161,6 +171,33 @@ def _generate_sitemap_files(pkgs):
                     "ckan.site_url") + res_url)
                 sitemap_item_count += 1
 
+    # Generate sitemap entries for organizations and groups (if enabled)
+    if INC_GROUPS:
+        groups = (
+            Session.query(Group)
+            .filter(Group.state == "active")
+            .filter(sa.or_(Group.type == "organization", Group.type == "group"))
+            .all()
+        )
+
+        for group in groups:
+            group_url = None
+            if group.type == "organization":
+                group_url = tk.url_for(controller="organization", action="read", id=group.name)
+            elif group.type == "group":
+                group_url = tk.url_for(controller="group", action="read", id=group.name)
+
+            if group_url:
+                if sitemap_item_count % MAX_ITEMS == 0:
+                    file_root, sitemap_index, sitemap_item_count = _start_new_sitemap(
+                        file_root, sitemap_item_count, sitemap_index
+                    )
+                _add_url_to_sitemap(
+                    file_root, group_url, lastmod, tk.config.get("ckan.site_url") + group_url
+                )
+                sitemap_item_count += 1
+
+
     # Write the last sitemap file
     if file_root is not None:
         with open(os.path.join(SITEMAP_DIR, _generate_filename(sitemap_index)), "wb") as f:
@@ -172,15 +209,8 @@ def _generate_sitemap_files(pkgs):
 def generate_sitemap():
     try:
         log.info("Generating sitemaps")
-        pkgs = (
-            Session.query(Package)
-            .filter(Package.type == "dataset")
-            .filter(Package.private != True)
-            .filter(Package.state == "active")
-            .all()
-        )
 
-        total_sitemaps = _generate_sitemap_files(pkgs)
+        total_sitemaps = _generate_sitemap_files()
 
         # Generate sitemap index
         index_root = etree.Element(
