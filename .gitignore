@@ -40,3 +40,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# Generated sitemaps (default directory)
+ckanext/sitemap/public/sitemap*
